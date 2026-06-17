@@ -74,6 +74,21 @@ export function AuthProvider({ children }) {
     setError(null);
   }, []);
 
+  const updateUser = useCallback(async (name, email) => {
+    setError(null);
+    try {
+      const res = await API.put("/auth/profile", { name, email });
+      const { user: userData } = res.data;
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+      return { success: true, user: userData };
+    } catch (err) {
+      const message = err.response?.data?.message || "Failed to update profile. Please try again.";
+      setError(message);
+      return { success: false, message };
+    }
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
   const value = {
@@ -86,6 +101,7 @@ export function AuthProvider({ children }) {
     logout,
     clearError,
     fetchProfile,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

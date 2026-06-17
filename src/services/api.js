@@ -1,8 +1,7 @@
 import axios from "axios";
 
-const DEFAULT_BACKEND = "https://mindease-ai-mtzh.onrender.com/api";
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : DEFAULT_BACKEND,
+  baseURL: "/api",
 });
 
 API.interceptors.request.use((req) => {

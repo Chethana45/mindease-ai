@@ -1,14 +1,64 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/ui/PageHeader";
 import Spinner from "../components/ui/Spinner";
 import ErrorAlert from "../components/ui/ErrorAlert";
-import { FaUser, FaEnvelope, FaIdBadge, FaCalendarAlt, FaShieldAlt } from "react-icons/fa";
+import {
+  FaUser, FaEnvelope, FaIdBadge, FaCalendarAlt, FaShieldAlt,
+  FaCheck, FaTimes, FaSave, FaEdit
+} from "react-icons/fa";
 
 function Profile() {
-  const { user, loading, error, clearError } = useAuth();
+  const { user, loading, error, clearError, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+
+  // Populate form fields when user data is available or when entering edit mode
+  useEffect(() => {
+    if (user) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+    }
+  }, [user]);
+
+  const handleEdit = () => {
+    if (user) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+    }
+    setEditing(true);
+    setSuccess("");
+  };
+
+  const handleCancel = () => {
+    if (user) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+    }
+    setEditing(false);
+    setSuccess("");
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSuccess("");
+    clearError();
+
+    const result = await updateUser(name, email);
+
+    if (result.success) {
+      setSuccess("Profile updated successfully!");
+      setEditing(false);
+      // Success toast auto-clears after 3 seconds
+      setTimeout(() => setSuccess(""), 3000);
+    }
+
+    setSaving(false);
+  };
 
   if (loading) {
     return (
@@ -29,6 +79,21 @@ function Profile() {
       />
 
       <ErrorAlert message={error} onDismiss={clearError} />
+
+      {/* Success Toast */}
+      <AnimatePresence>
+        {success && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mb-4 flex items-center gap-3 rounded-xl border border-green-500/20 bg-green-500/10 px-5 py-3 text-sm text-green-300"
+          >
+            <FaCheck className="text-green-400" />
+            {success}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
         {/* Avatar Card */}
@@ -62,35 +127,61 @@ function Profile() {
               <p className="text-xs font-medium uppercase tracking-wider text-purple-300/80">Details</p>
               <h3 className="mt-1 text-lg font-semibold text-white">Account Information</h3>
             </div>
-            <button
-              onClick={() => setEditing(!editing)}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10"
-            >
-              {editing ? "Cancel" : "Edit Profile"}
-            </button>
+            {!editing && (
+              <button
+                onClick={handleEdit}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10"
+              >
+                <FaEdit />
+                Edit Profile
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
+            {/* Full Name Field */}
             <div className="flex items-center gap-4 rounded-xl bg-slate-900/50 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
                 <FaUser />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs text-slate-500">Full Name</p>
-                <p className="text-sm font-medium text-white truncate">{user?.name || "Not set"}</p>
+                {editing ? (
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white outline-none transition focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30"
+                    placeholder="Your full name"
+                  />
+                ) : (
+                  <p className="text-sm font-medium text-white truncate">{user?.name || "Not set"}</p>
+                )}
               </div>
             </div>
 
+            {/* Email Field */}
             <div className="flex items-center gap-4 rounded-xl bg-slate-900/50 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
                 <FaEnvelope />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs text-slate-500">Email Address</p>
-                <p className="text-sm font-medium text-white truncate">{user?.email || "Not set"}</p>
+                {editing ? (
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white outline-none transition focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30"
+                    placeholder="your@email.com"
+                  />
+                ) : (
+                  <p className="text-sm font-medium text-white truncate">{user?.email || "Not set"}</p>
+                )}
               </div>
             </div>
 
+            {/* User ID (read-only) */}
             <div className="flex items-center gap-4 rounded-xl bg-slate-900/50 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-400">
                 <FaIdBadge />
@@ -101,6 +192,7 @@ function Profile() {
               </div>
             </div>
 
+            {/* Account Status (read-only) */}
             <div className="flex items-center gap-4 rounded-xl bg-slate-900/50 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
                 <FaShieldAlt />
@@ -112,15 +204,38 @@ function Profile() {
             </div>
           </div>
 
+          {/* Edit Actions */}
           {editing && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="mt-6 rounded-xl border border-purple-500/20 bg-purple-500/5 p-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 flex items-center gap-3"
             >
-              <p className="text-sm text-purple-300">
-                ✨ Profile editing will be available in the next update. Stay tuned!
-              </p>
+              <button
+                onClick={handleSave}
+                disabled={saving || !name.trim() || !email.trim()}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-purple-500/20 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <Spinner size="sm" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <FaSave />
+                    Save Changes
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FaTimes />
+                Cancel
+              </button>
             </motion.div>
           )}
         </motion.div>
