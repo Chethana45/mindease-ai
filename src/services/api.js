@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_URL ||
+    "https://mindease-ai-mtzh.onrender.com/api",
 });
 
 API.interceptors.request.use((req) => {

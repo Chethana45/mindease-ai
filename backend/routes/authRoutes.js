@@ -135,7 +135,7 @@ router.post("/login", async (req, res) => {
 
 /*
 ==================================
-PROFILE
+PROFILE (GET)
 ==================================
 */
 router.get(
@@ -159,6 +159,77 @@ router.get(
 
     } catch (error) {
       console.error("Profile Error:", error);
+
+      res.status(500).json({
+        message: error.message,
+      });
+    }
+  }
+);
+
+/*
+==================================
+UPDATE PROFILE (PUT)
+==================================
+*/
+router.put(
+  "/profile",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { name, email } = req.body;
+
+      // Validation
+      if (!name || !email) {
+        return res.status(400).json({
+          message: "Name and email are required",
+        });
+      }
+
+      if (typeof name !== "string" || name.trim().length === 0) {
+        return res.status(400).json({
+          message: "Name cannot be empty",
+        });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          message: "Please provide a valid email address",
+        });
+      }
+
+      // Check if email is already taken by another user
+      const existingUser = await User.findOne({ email });
+      if (existingUser && existingUser._id.toString() !== req.user.id) {
+        return res.status(400).json({
+          message: "Email is already in use by another account",
+        });
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user.id,
+        { name: name.trim(), email: email.toLowerCase().trim() },
+        { new: true, runValidators: true }
+      ).select("-password");
+
+      if (!updatedUser) {
+        return res.status(404).json({
+          message: "User not found",
+        });
+      }
+
+      res.status(200).json({
+        message: "Profile updated successfully",
+        user: {
+          _id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+        },
+      });
+
+    } catch (error) {
+      console.error("Update Profile Error:", error);
 
       res.status(500).json({
         message: error.message,
